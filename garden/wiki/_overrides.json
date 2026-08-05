@@ -1,0 +1,24 @@
+{
+ "_README": [
+  "Per-file corrections to the generated index. THIS is how the Unidentified pile shrinks.",
+  "",
+  "The generator matches keywords against filenames, which fails for anything named after a",
+  "DOI, a hash, or a download counter. Rather than rename the original — never rename the",
+  "original — you record the truth here and regenerate.",
+  "",
+  "Shape, keyed on the EXACT filename as it sits in raw/:",
+  "",
+  "  \"40614_2022_Article_338.pdf\": {",
+  "    \"title\": \"Applied Behavior Analysis in Children and Youth with Autism\",",
+  "    \"category\": \"reading\"",
+  "  }",
+  "",
+  "title    -> what the index calls it. Also feeds keyword matching, so a good title can",
+  "            place a file on the right shelf by itself.",
+  "category -> an id from wiki/_config.json, or 'media' / 'unidentified'. Optional.",
+  "",
+  "Every entry you add is a permanent improvement: the file stays untouched, and the index",
+  "gets smarter. Ask Claude to fill these in for you — that is what the tend-the-garden",
+  "skill does."
+ ]
+}

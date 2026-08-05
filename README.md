@@ -11,6 +11,12 @@ stripped of anything Stimpunks-specific. Copy it, rename three things, and it is
 stops being useful — most of the value is in step one, and each later step only adds
 convenience on top of a thing that already worked.
 
+> **Planning to use an AI to help maintain this?** It is already set up for that. `CLAUDE.md`
+> carries the rules and `.claude/skills/` holds five narrow tools — add a file, build the
+> index, ask the garden, commit, check readability. Start with
+> [docs/working-with-claude.md](docs/working-with-claude.md). The important boundary is there
+> too: **the machine writes the index, never the sources, and never answers for them.**
+
 ---
 
 ## Step 1 — Make a garden. No tools required.

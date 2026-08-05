@@ -52,7 +52,8 @@ Safe to run any time. Overwrites the index; touches nothing in `raw/`.
 
 - **Read from `raw/`; write understanding into `wiki/`.** Never the other way round.
 - **Never modify `raw/`** — not to fix a filename, not to normalise an encoding. If you
-  think something in there is wrong, surface it and stop.
+  think something in there is wrong, surface it and stop. Corrections go in
+  `garden/wiki/_overrides.json`, which exists precisely so nothing has to be renamed.
 - **Do not hand-edit generated pages.** Change the config and regenerate.
 - **Cite the original, not the index.** An index entry is a pointer; the source is the
   evidence. If a claim's only support is something you generated, you have found nothing.
@@ -61,6 +62,25 @@ Safe to run any time. Overwrites the index; touches nothing in `raw/`.
 - **Do not fill gaps from your training data.** If the garden does not say it, say the
   garden does not say it. A confident answer from somewhere else defeats the purpose of
   having a garden.
+- **An unread file is not a source.** A promising filename is not evidence. Open it, or say
+  you only have the title.
+- **Ask before anything irreversible.** Deleting, overwriting, renaming, force-pushing, or
+  rewriting history. Propose it and wait.
+
+### Skills available here
+
+Five narrow tools in `.claude/skills/`. Prefer them over improvising the same work by hand,
+because they encode the rules above:
+
+| Skill | Does |
+|---|---|
+| `add-to-garden` | Store one new file in `raw/` untouched, record a real title, rebuild the index |
+| `tend-the-garden` | Build the index; work the Unidentified pile by actually opening files |
+| `ask-my-garden` | Answer only from this garden, citing a file beside every claim |
+| `commit-garden` | Commit and push the text layer with a message that says what changed |
+| `check-readability` | Audit reading level and sentence length against plain-language targets |
+
+Full walk-through for the human: [docs/working-with-claude.md](docs/working-with-claude.md).
 
 ## Honest limits
 
