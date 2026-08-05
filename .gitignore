@@ -1,0 +1,18 @@
+# Your own sources are yours. This template tracks the machinery and the rules,
+# never your library — you almost certainly do not want a gigabyte of PDFs in git.
+# Delete these two lines if your raw/ is small and text-only and you want it versioned.
+/garden/raw/*
+!/garden/raw/README.md
+
+# Transient staging tray. The permanent copy always ends up in raw/.
+/garden/inbox/*
+!/garden/inbox/README.md
+
+# Search index, if you get as far as installing qmd. A rebuildable cache, never provenance.
+/garden/.qmd/*
+!/garden/.qmd/index.yml
+
+.DS_Store
+**/.DS_Store
+__pycache__/
+*.pyc

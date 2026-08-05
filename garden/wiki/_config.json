@@ -1,0 +1,28 @@
+{
+ "_README": [
+  "EDIT THIS FILE FIRST. It is the only file you need to change to make this yours.",
+  "",
+  "vault.name           -> the title at the top of your generated index.",
+  "vault.glossary_path  -> leave null unless you have a published glossary. Only the",
+  "                        optional concept layer uses it; the file index works without one.",
+  "categories           -> ORDERED. First match wins, so put narrow shelves first. Keywords",
+  "                        are matched against each filename (lowercased), so they should be",
+  "                        words that actually appear in your file names.",
+  "",
+  "The three examples below are PLACEHOLDERS. Replace them with your own shelves. Anything",
+  "that matches nothing lands in 'Unidentified', which is not a failure — it is your to-do",
+  "list for retitling files whose names say nothing."
+ ],
+ "vault": {
+  "name": "My Knowledge Garden",
+  "glossary_path": null
+ },
+ "categories": [
+  {"id": "reading", "title": "Reading & Sources", "emoji": "📚",
+   "keywords": ["book", "paper", "article", "chapter"]},
+  {"id": "writing", "title": "My Writing", "emoji": "✍️",
+   "keywords": ["draft", "essay", "post", "talk"]},
+  {"id": "reference", "title": "Reference & Guides", "emoji": "🧭",
+   "keywords": ["guide", "handbook", "manual", "checklist", "toolkit"]}
+ ]
+}
