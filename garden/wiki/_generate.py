@@ -121,6 +121,11 @@ if "--no-concepts" not in sys.argv:
         import _concepts
         CONCEPT_RECORDS, CONCEPT_MAP, _cmeta, _cbroad = _concepts.refresh(
             OVERRIDES, force="--force-concepts" in sys.argv)
+    except ModuleNotFoundError:
+        # No _concepts.py at all — the normal state for a garden that has not opted into
+        # the concept layer. Not an error, and it must not read like one: a Python
+        # traceback name in the output makes a newcomer think their install is broken.
+        print("  · concept layer not installed (wiki/_concepts.py absent) — file index only")
     except Exception as e:                       # never let this break the index
         print(f"  ! concept layer skipped: {type(e).__name__}: {e}")
 
