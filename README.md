@@ -38,6 +38,55 @@ not to fix a typo. Every derived thing — every summary, category, and index �
 somewhere else and points back. That is the difference between provenance you can cite and
 a pile you have been quietly rewriting.
 
+### Getting these folders onto your computer
+
+Three routes. **They differ in one way that matters: whether you end up with a git
+repository of your own.** Step 2 depends on the answer, so pick one and note which.
+
+**A — Use this template (recommended).** On [the repo page](https://github.com/Stimpunks/knowledge-garden-starter),
+press **Use this template → Create a new repository**. GitHub makes you a brand-new
+repository that is *yours*, with these folders and one clean commit. No fork, no shared
+history, nothing to detach. Then bring it down:
+
+```bash
+git clone https://github.com/YOUR-USERNAME/YOUR-REPO.git my-garden
+cd my-garden
+```
+
+You now have a git repository you can actually push to. **That last part matters more than
+it sounds** — see the warning under route C.
+
+**B — Download the ZIP (no GitHub account needed).** On the repo page, press the green
+**Code** button → **Download ZIP**, then unzip it wherever you keep your work. You get the
+folders and none of the git machinery, which is a perfectly good place to stop. The ZIP does
+not include any history.
+
+**C — Clone ours and detach.** If you want our commit history to read later:
+
+```bash
+git clone https://github.com/Stimpunks/knowledge-garden-starter.git my-garden
+cd my-garden
+git remote remove origin        # it is yours now; stop pointing at us
+```
+
+Or throw our history away entirely and start your own from this moment:
+
+```bash
+rm -rf .git && git init
+```
+
+> ⚠️ **Do not skip the detach step.** A fresh clone still points at *our* repository, which
+> you cannot write to — so your first `git push` fails with a permissions error. On day one
+> that looks exactly like you broke something, on the command you were most nervous about.
+> `git remote remove origin` prevents it. Route A avoids the problem altogether, which is
+> why it is the recommendation.
+
+**Which folder am I in?** Routes A and C put the garden at `my-garden/garden/`. Route B puts
+it wherever you unzipped, in a folder named after the repo. Either way, the four folders
+above live inside `garden/`.
+
+### Then just use it
+
 You can do step 1 in Finder, in [Obsidian](https://obsidian.md/), in anything. Put a PDF in
 `garden/raw/`, write a line about why in `garden/wiki/README.md`, repeat. **If you stop
 here you already have the thing.** Everything below is convenience.
@@ -52,14 +101,29 @@ hundreds of times — and it is the exact skill a citation is testing.
 Not for collaboration. For **mercy**: a history means you can always get back, so you stop
 being afraid to change things.
 
+> **First, check whether you already have a repository.** If you took **route A or C** above,
+> you do — cloning gave you one. **Skip `git init`.** Running it again inside `garden/` would
+> create a second repository nested inside the first, which quietly breaks things: `git
+> status` at the top stops reporting your files and nothing tells you why. Run `git status`
+> if you are unsure. If it prints anything other than *"not a git repository"*, you are set.
+
+**Route A or C — you already have a repository.** From the top of your project:
+
 ```bash
-cd garden
+git add .
+git commit -m "My garden, day one"
+git push
+```
+
+**Route B (the ZIP) — you have no repository yet.** From the top of the folder you unzipped:
+
+```bash
 git init
 git add .
 git commit -m "My garden, day one"
 ```
 
-That is four commands and you now have a record of every version of your thinking. See
+Either way you now have a record of every version of your thinking. See
 [docs/terminal-week.md](docs/terminal-week.md) for a walk-through written for someone who
 has not used a terminal before — including what each command actually does, and what to do
 when it goes wrong.

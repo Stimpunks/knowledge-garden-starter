@@ -53,7 +53,19 @@ the path for you, correctly, including the spaces. You do not have to type paths
 
 Do these once, inside your garden folder.
 
-### 1. Start keeping history
+### 1. Start keeping history — but only if you need to
+
+**Check first.** If you got your garden by cloning — from *Use this template*, or by cloning
+ours — git is already watching it and you should **skip this step entirely**. Run:
+
+```bash
+git status
+```
+
+If it prints anything other than *"not a git repository"*, you already have a history. Go
+straight to step 2.
+
+Only if it says *not a git repository* — which is the case if you downloaded the ZIP:
 
 ```bash
 git init
@@ -61,6 +73,11 @@ git init
 
 Creates a hidden `.git` folder. Nothing else changes — your files are untouched. Git is now
 *watching* the folder, but it has not recorded anything yet.
+
+**Why the check matters.** Running `git init` inside a folder that is already inside a
+repository makes a second repository nested in the first. Nothing warns you. Afterwards
+`git status` at the top level stops reporting your files, and there is no obvious reason
+why. It is a bad afternoon for no reason, and one command avoids it.
 
 ### 2. Choose what to record
 
@@ -159,14 +176,29 @@ in plainer language than the error did.
 Everything above works entirely on your own machine and is already a real history. You only
 need this part if you want an offsite copy.
 
-Make an empty repository on GitHub, then:
+**If your garden came from *Use this template*, this is already done.** GitHub made the
+repository for you and cloning wired it up, so:
+
+```bash
+git push
+```
+
+That is the whole thing. Anything you have committed goes up.
+
+**If you started from the ZIP,** make an empty repository on GitHub, then connect it once:
 
 ```bash
 git remote add origin git@github.com:yourname/your-garden.git
 git push -u origin main
 ```
 
-After that, `git push` on its own sends up anything you have committed.
+After that, `git push` on its own is enough.
+
+**If you cloned ours and removed the remote,** you are in the same position as the ZIP — make
+your own empty repository and add it as above. If you *forgot* to remove our remote, `git
+push` fails with a permissions error. That is not you breaking anything; it is git correctly
+refusing to write to somebody else's repository. Fix it with `git remote remove origin` and
+then add your own.
 
 **Think before you push.** A pushed repository is a copy that exists somewhere you do not
 control. If your garden holds anything you would not hand to a stranger, make the repository
