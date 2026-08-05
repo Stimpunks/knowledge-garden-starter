@@ -3,6 +3,8 @@
   "EDIT THIS FILE FIRST. It is the only file you need to change to make this yours.",
   "",
   "vault.name           -> the title at the top of your generated index.",
+  "vault.banner         -> the note at the top of your generated index. Say who or what",
+  "                        writes it, in your own words.",
   "vault.glossary_path  -> leave null unless you have a published glossary. Only the",
   "                        optional concept layer uses it; the file index works without one.",
   "categories           -> ORDERED. First match wins, so put narrow shelves first. Keywords",
@@ -15,14 +17,43 @@
  ],
  "vault": {
   "name": "My Knowledge Garden",
-  "glossary_path": null
+  "glossary_path": null,
+  "banner": "**Generated index — do not hand-edit.** Every link below points to an original, unaltered file in [`../raw/`](../raw). This page is written by `wiki/_generate.py`; to change it, edit `wiki/_config.json` and run the script again. Anything you type here is overwritten. Nothing in `raw/` is ever modified."
  },
  "categories": [
-  {"id": "reading", "title": "Reading & Sources", "emoji": "📚",
-   "keywords": ["book", "paper", "article", "chapter"]},
-  {"id": "writing", "title": "My Writing", "emoji": "✍️",
-   "keywords": ["draft", "essay", "post", "talk"]},
-  {"id": "reference", "title": "Reference & Guides", "emoji": "🧭",
-   "keywords": ["guide", "handbook", "manual", "checklist", "toolkit"]}
+  {
+   "id": "reading",
+   "title": "Reading & Sources",
+   "emoji": "📚",
+   "keywords": [
+    "book",
+    "paper",
+    "article",
+    "chapter"
+   ]
+  },
+  {
+   "id": "writing",
+   "title": "My Writing",
+   "emoji": "✍️",
+   "keywords": [
+    "draft",
+    "essay",
+    "post",
+    "talk"
+   ]
+  },
+  {
+   "id": "reference",
+   "title": "Reference & Guides",
+   "emoji": "🧭",
+   "keywords": [
+    "guide",
+    "handbook",
+    "manual",
+    "checklist",
+    "toolkit"
+   ]
+  }
  ]
 }
