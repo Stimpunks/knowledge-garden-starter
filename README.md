@@ -108,10 +108,21 @@ Not for collaboration. For **mercy**: a history means you can always get back, s
 being afraid to change things.
 
 > **First, check whether you already have a repository.** If you took **route A or C** above,
-> you do — cloning gave you one. **Skip `git init`.** Running it again inside `garden/` would
-> create a second repository nested inside the first, which quietly breaks things: `git
-> status` at the top stops reporting your files and nothing tells you why. Run `git status`
-> if you are unsure. If it prints anything other than *"not a git repository"*, you are set.
+> you do — cloning gave you one. **Skip `git init`.** Run `git status` if you are unsure: anything
+> other than *"not a git repository"* means you are set.
+>
+> Running `git init` again is **not dangerous**, just confusing. At the top of your project it
+> prints *"Reinitialized existing Git repository"* and changes nothing. Inside `garden/` it makes
+> a second repository nested in the first — your files keep being tracked by the outer one, but
+> `git log` in there shows a history you do not recognise and `git push` fails saying there is
+> nowhere to push to. Now you have two repositories and no way to tell which one you are talking
+> to. Delete the stray `garden/.git` and carry on.
+
+> ⚠️ **Check which folder you are in before you run any of this.** `git init` followed by
+> `git add .` in the wrong place — your home folder, say — makes a repository out of everything
+> you own and offers up your SSH keys and saved credentials to be committed with it. `pwd` prints
+> where you are; `ls` shows whether you can see `garden/` and `docs/` from here. Of everything in
+> this README, that is the one mistake with real consequences, and one command prevents it.
 
 **Route A or C — you already have a repository.** From the top of your project:
 

@@ -74,10 +74,27 @@ git init
 Creates a hidden `.git` folder. Nothing else changes — your files are untouched. Git is now
 *watching* the folder, but it has not recorded anything yet.
 
-**Why the check matters.** Running `git init` inside a folder that is already inside a
-repository makes a second repository nested in the first. Nothing warns you. Afterwards
-`git status` at the top level stops reporting your files, and there is no obvious reason
-why. It is a bad afternoon for no reason, and one command avoids it.
+**Why the check matters.** Running `git init` where a repository already exists is **not
+dangerous** — nothing is deleted and no history is lost. It is just confusing, in a way that
+wastes an afternoon. At the top of your project it prints *"Reinitialized existing Git
+repository"* and does nothing at all. Inside `garden/` it makes a second repository nested in
+the first, and nothing warns you: your files carry on being tracked by the outer one, but
+`git log` in there shows a history you have never seen and `git push` fails saying there is
+nowhere to push to. You end up with two repositories and no way to tell which one you are
+talking to. If it happens, delete the stray `garden/.git` folder and carry on — you have lost
+nothing.
+
+**The mistake that does matter is being in the wrong folder.** `git init` and then `git add .`
+in your home folder makes a repository out of *everything you own* — every document, every
+download — and offers up your SSH keys and saved passwords to be committed along with it. This
+is the one thing on this page worth being careful about.
+
+```bash
+pwd    # where am I?
+ls     # can I see garden/ and docs/ from here?
+```
+
+If `ls` does not show you `garden/`, you are in the wrong place. Do not run `git init` yet.
 
 ### 2. Choose what to record
 
