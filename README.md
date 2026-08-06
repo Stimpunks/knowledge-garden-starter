@@ -222,6 +222,23 @@ Python script, and a rule about not editing your own sources.
 It also will not create capacity. It stops you wasting the capacity you have on finding
 things you already had.
 
+## License
+
+**[CC0 1.0](LICENSE) — public domain. No attribution required, no conditions, no strings.**
+Take it. Rename it. Sell it. Never mention us. You do not need permission and you do not owe
+us a line in your README.
+
+That is a deliberate departure from [everything else we publish](https://stimpunks.org/about/license/),
+which is CC BY-SA — copyleft, chosen on purpose. A template is the one place that choice
+backfires. ShareAlike here would follow you into your own garden: your rules file, your
+categories, your notes. Nobody's private thinking should inherit a license from the empty
+folders it started in.
+
+The Python is **also** available under [MIT-0](LICENSE-CODE), which is MIT with the
+attribution clause removed. Use whichever you like. CC0 does not waive patent rights, so some
+organisations refuse CC0-licensed code outright — MIT-0 is there so that policy is never the
+reason you have to walk away.
+
 ## Credit
 
 The source-plus-index pattern comes from Andrej Karpathy's
