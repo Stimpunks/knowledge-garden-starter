@@ -36,6 +36,23 @@ Then point your search tool at `garden/.qmd/library` as well as your notes.
 2. **Treat the cache as disposable.** It is git-ignored, rebuildable, and never provenance.
    If it disappears, you lose nothing but time.
 
+## The order matters, and getting it wrong does not error
+
+Extraction, index rebuild, and re-embedding feed each other in that sequence. Run them out
+of order and every step still reports success — you just get an index that is confidently
+describing the wrong thing:
+
+```bash
+pdftotext …                              # 1. extract, so there is text to read
+python3 wiki/_generate.py --no-concepts  # 2. rebuild the index over it
+qmd update && qmd embed                  # 3. re-index and embed, last
+```
+
+Embed before extracting and the new PDFs simply are not there. Also note that `qmd embed`
+**can exit 0 with documents still unembedded** — check for a `Pending:` line in `qmd status`
+and re-run until it is gone. Both traps are in
+[README Step 4](../README.md#step-4--make-it-searchable).
+
 ## The part people skip
 
 **Not everything extracts, and you must say so out loud.**

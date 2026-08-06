@@ -43,6 +43,12 @@ by meaning rather than by matching words the user had to guess:
 qmd query "the question in their own words"
 ```
 
+**But a search index is not the garden.** It reflects the last time it was rebuilt, it only
+covers the folders someone thought to add as collections, and it cannot read PDFs unless
+their text was extracted first. All three gaps are silent. So an empty result from qmd means
+*"not in the index"*, which is a much smaller claim than *"not in the garden"* — fall back to
+`grep`, and to the index in `garden/wiki/`, before you believe it.
+
 ### 2. Judge what you found, honestly
 
 - **Solid support** → answer, grounded entirely in it.
@@ -65,6 +71,17 @@ at it. An index entry is a signpost; the file is the evidence. **If a claim's on
 something the generator wrote, you have found nothing yet.**
 
 ### 4. When the garden is silent, say so
+
+**First make sure it actually is.** "The garden is silent" is a claim about *everything the
+user holds*, and the usual way to get it wrong is to check only one corpus — the one that
+happened to be indexed, or the one that greps cleanly. Before saying it, confirm you searched
+the notes, the index, and the library, and that a search tool's miss was not really a stale
+or partial index (step 1).
+
+If you could not reach part of the garden — an un-extracted PDF pile, a folder qmd never
+indexed — **say the sweep was partial.** That is a different sentence from "you have nothing
+on this," and reporting the second when you mean the first is how a garden gets blamed for a
+gap it does not have.
 
 > Nothing here on the double empathy problem. The index has no source by Milton, and the
 > notes mention the phrase twice without citing anything. **I am not going to fill that in

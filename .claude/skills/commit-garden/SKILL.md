@@ -1,6 +1,6 @@
 ---
 name: commit-garden
-description: Commit and push the garden's text — notes, index, and config — with a message that says what changed. Use when the user says "commit my notes", "back this up", "save my work", "commit the garden", or wants today's writing safely offsite.
+description: Commit and push the garden's text — notes, index, and config — with a message that says what changed, guarded against mass deletions and placeholder messages. Use when the user says "commit my notes", "back this up", "save my work", "commit the garden", or wants today's writing safely offsite.
 ---
 
 # commit-garden
@@ -8,64 +8,79 @@ description: Commit and push the garden's text — notes, index, and config — 
 Gets the user's writing into git and offsite. Purely mechanical — no analysis, no
 reorganising, no rewriting anything.
 
+**Use the script. Do not assemble `git add`/`commit` by hand.**
+
+```bash
+python3 .claude/skills/commit-garden/commit-garden.py -m "Notes from Tuesday: three papers on monotropism, plus index rebuild"
+```
+
+Other forms: `-F -` reads the message from stdin (easier for multi-line), `--dry-run` shows
+what would happen and commits nothing, `--no-push` keeps it local, `--max-deletes N` raises
+the deletion limit.
+
+## Why a script and not just `git add -A`
+
+Because the three mistakes worth preventing are all invisible at the moment you make them,
+and a rule in a file is a suggestion where a non-zero exit is a refusal. The script:
+
+- **Refuses a mass deletion** (more than 25 staged deletes). This is the important one. An
+  uncommitted deletion is one `git restore` away; a committed one is archaeology. When it
+  refuses, it prints the exact recovery command.
+- **Refuses a placeholder message** — "update", "wip", "fix", or any subject under 12
+  characters.
+- **Reports whether `garden/raw/` is actually in the commit**, because it is git-ignored by
+  default. A successful push may protect none of the library, and you should never let a
+  green checkmark imply otherwise.
+- **Diagnoses a failed push** instead of retrying blindly — no remote, wrong remote,
+  behind the remote, or an auth problem each get the one command that fixes them.
+
 ## Steps
 
-1. **See what is actually pending.** Never commit blind:
+1. **Read the diff before writing a message about it.** The message is supposed to come
+   *from* the diff. This is the whole reason the skill exists:
 
    ```bash
-   git -C . status --short
-   ```
-
-   If the tree is clean, **say so and stop.** A clean tree is a no-op, not a problem. Do not
-   invent work to commit.
-
-2. **Look at what changed before writing a message about it.** If the diff is small, read it:
-
-   ```bash
+   git status --short
    git diff --stat
    ```
 
-3. **Commit with a real message.**
+2. **Run the script with a real message.** Write it for the user in eight months. *"Added
+   the Milton papers and retitled six opaque filenames"* is worth having. *"Update"* is not
+   — it costs the same to type and tells them nothing. The script will reject the second one.
 
-   ```bash
-   git add -A
-   git commit -m "Notes from Tuesday: three papers on monotropism, plus index rebuild"
-   ```
+3. **Report what went in, and what was left out.** Counts by area, not a file dump. The
+   script prints exactly this; pass it along rather than re-summarising it:
+   *"Committed a1b2c3d — 9 files: 6 in garden/notes/, 2 in garden/wiki/, 1 config. Pushed."*
 
-   Write the message for the user in eight months. *"Added the Milton papers and retitled six
-   opaque filenames"* is worth having. *"Update"* is not — it costs the same to type and
-   tells them nothing.
+   **Include its `garden/raw/` line.** If the library is ignored, say so out loud rather
+   than letting the user believe a commit protected their PDFs.
 
-4. **Push, if there is somewhere to push to.**
+## When a guard refuses
 
-   ```bash
-   git push
-   ```
+**That is the system working. Report it and stop.**
 
-   **If push fails, do not panic and do not retry blindly.** Read the error:
-   - *"does not appear to be a git repository"* or no remote → there is no offsite copy yet.
-     The commit is safe locally. Offer to help set up a remote.
-   - *permission denied / 403* → the remote points at a repository the user cannot write to.
-     This is the classic result of cloning someone else's template without detaching. Fix:
-     `git remote remove origin`, then add their own.
-   - *rejected, non-fast-forward* → the remote has commits they do not have. `git pull` first.
+Do not raise `--max-deletes` to make a surprise go away, and do not reword a message just
+enough to slip past the length check. If 400 files are staged for deletion, something
+deleted them — find out what before making it history. The refusal is the last moment when
+the answer is still a one-line `git restore`.
 
-5. **Report what went in, and what you left.** Counts by area, not a file dump:
-   *"Committed a1b2c3d — 9 files: 6 in notes/, 2 in wiki/, 1 config. Pushed."*
+If the deletions really are intended, say so in the message and pass the explicit count.
+That is a different act from silencing the guard: it leaves a record of the decision.
 
 ## Rules
 
-- **`garden/raw/` may be git-ignored.** Check `.gitignore`. If it is, the library is *not*
-  going offsite with this commit — it is covered by whatever backup the user has for large
-  files. **Say that out loud** rather than letting them believe a commit protected their PDFs.
-- **Never rewrite history.** No amend, no rebase, no force. This skill only moves forward.
-- **Never reorganise or reformat the user's notes** on the way past. Commit what is on disk,
-  untouched.
+- **Never rewrite history.** No amend, no rebase, no force. This skill only moves forward,
+  and the script has no flags for any of it. If a commit message is wrong, the fix is a new
+  commit, not a rewritten one — especially on a repository anyone else has pulled.
+- **Never reorganise or reformat the user's notes** on the way past. Commit what is on
+  disk, untouched.
+- **A clean tree is a no-op, not a problem.** Say so and stop. Do not invent work to commit.
 - If something looks half-finished, **ask before committing it.** A commit is cheap; a
   confusing history is not.
 
 ## Note
 
 Committing is not the same as publishing. If the remote is public, everything in this commit
-becomes public. If the garden holds anything the user would not hand to a stranger, that is a
-conversation to have *before* the first push, not after.
+becomes public — and on a public repository, a commit is effectively permanent even if you
+delete it later. If the garden holds anything the user would not hand to a stranger, that is
+a conversation to have *before* the first push, not after.

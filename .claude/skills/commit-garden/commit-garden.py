@@ -74,16 +74,30 @@ def check_message(msg):
     return None
 
 
-def staged(root):
-    """Staged paths grouped by status letter: {'A': [...], 'M': [...], 'D': [...]}."""
-    out = git("diff", "--cached", "--name-status", root=root).stdout
+def pending(root):
+    """Everything that would go into the commit, grouped: {'A': [...], 'M': [...], ...}.
+
+    Read from `git status --porcelain`, NOT from the index, so that previewing costs nothing
+    and mutates nothing. `git add -A` happens once, immediately before the commit — a
+    --dry-run that silently staged the whole tree would destroy any partial staging the user
+    had set up, which is a rude thing for a preview to do.
+    """
     groups = {}
-    for line in out.splitlines():
+    # -uall matters: the default collapses a new directory into one "?? dir/" entry, so a
+    # commit adding 30 notes would report "+1 added". A count that under-reports the size of
+    # the commit is the exact failure this script exists to prevent.
+    for line in git("status", "--porcelain", "-uall", root=root).stdout.splitlines():
         if not line.strip():
             continue
-        parts = line.split("\t")
-        code = parts[0][0]                      # R100 -> R, so renames land together
-        groups.setdefault(code, []).append(parts[-1])
+        xy, path = line[:2], line[3:]
+        if xy == "??":
+            code = "A"                          # untracked: `add -A` will add it
+        else:
+            code = (xy[0] if xy[0] != " " else xy[1]).upper()
+        if code == "R" and " -> " in path:
+            path = path.split(" -> ", 1)[1]     # report the destination
+        path = path.strip('"')
+        groups.setdefault(code, []).append(path)
     return groups
 
 
@@ -91,12 +105,15 @@ def by_area(paths, limit=8):
     """Counts by top-level area, so the report is 'six in notes/' not a file dump."""
     tally = {}
     for p in paths:
-        head = p.split("/")[0] if "/" in p else p
-        if head == "garden" and p.count("/") >= 1:
-            head = "/".join(p.split("/")[:2])    # garden/notes, garden/wiki — the useful grain
+        if "/" in p:
+            head = p.split("/")[0] + "/"
+            if head == "garden/" and p.count("/") >= 2:
+                head = "/".join(p.split("/")[:2]) + "/"   # garden/notes/ — the useful grain
+        else:
+            head = p                            # a root-level file is its own name, no slash
         tally[head] = tally.get(head, 0) + 1
     ranked = sorted(tally.items(), key=lambda kv: -kv[1])
-    shown = ", ".join(f"{n} in {a}/" for a, n in ranked[:limit])
+    shown = ", ".join(f"{n} in {a}" if a.endswith("/") else f"{a}" for a, n in ranked[:limit])
     if len(ranked) > limit:
         shown += f", and {len(ranked) - limit} more"
     return shown
@@ -112,14 +129,28 @@ def raw_state(root):
     raw = os.path.join(root, "garden", "raw")
     if not os.path.isdir(raw):
         return None
-    n_tracked = len([p for p in git("ls-files", "garden/raw", root=root).stdout.splitlines() if p])
-    on_disk = sum(len(files) for _, _, files in os.walk(raw))
-    if n_tracked:
-        return (f"garden/raw/: {n_tracked} of {on_disk} files are tracked — your originals "
-                f"ARE in git and go offsite with this push.")
-    return (f"garden/raw/: 0 of {on_disk} files tracked (git-ignored). Your originals are "
-            f"NOT in this commit and will not reach the remote. Whatever backs up large "
-            f"files on this machine is the only copy — check that it does.")
+
+    # The folder's own README.md is un-ignored by .gitignore so the empty folder survives a
+    # clone. It is scaffolding, not a source — counting it would report "1 of 1 tracked" for
+    # a library git has never seen, which is the precise false reassurance this exists to stop.
+    def is_source(p):
+        return os.path.basename(p) not in ("README.md", ".DS_Store", ".gitkeep")
+
+    n_tracked = len([p for p in git("ls-files", "garden/raw", root=root).stdout.splitlines()
+                     if p and is_source(p)])
+    on_disk = sum(len([f for f in files if is_source(f)]) for _, _, files in os.walk(raw))
+
+    if on_disk == 0:
+        return "garden/raw/: empty — nothing stored yet, so nothing to protect."
+    if n_tracked == 0:
+        return (f"garden/raw/: 0 of {on_disk} sources tracked (git-ignored). Your originals "
+                f"are NOT in this commit and will not reach the remote. Whatever backs up "
+                f"large files on this machine is their only copy — check that it does.")
+    if n_tracked < on_disk:
+        return (f"garden/raw/: {n_tracked} of {on_disk} sources tracked — the other "
+                f"{on_disk - n_tracked} are ignored and are NOT going offsite with this push.")
+    return (f"garden/raw/: all {on_disk} sources tracked — your originals ARE in git and go "
+            f"offsite with this push.")
 
 
 def diagnose_push(stderr):
@@ -174,8 +205,7 @@ def main():
         print("Nothing to commit — the tree is clean. That is a no-op, not a problem.")
         return 0
 
-    git("add", "-A", root=root)
-    groups = staged(root)
+    groups = pending(root)
     adds, mods = groups.get("A", []), groups.get("M", [])
     dels, rens = groups.get("D", []), groups.get("R", [])
 
@@ -202,9 +232,10 @@ def main():
         print(f"\n{state}")
 
     if a.dry_run:
-        print("\n--dry-run: nothing committed.")
+        print("\n--dry-run: nothing committed, nothing staged.")
         return 0
 
+    git("add", "-A", root=root)                 # first mutation of the run, and the only one
     r = git("commit", "-m", msg.strip(), root=root)
     if r.returncode != 0:
         print(r.stdout + r.stderr, file=sys.stderr)

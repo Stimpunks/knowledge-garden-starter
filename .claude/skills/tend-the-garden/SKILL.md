@@ -28,7 +28,28 @@ categories the library actually needs, not categories in the abstract.
 Open `garden/wiki/unidentified.md`. Everything there is a file whose name told the
 generator nothing. **This is the to-do list, not a failure.**
 
-For each one, in small batches — five or ten, not eighty:
+**Re-measure before you start, and quote what you measured.** Never quote a count from a
+file — including this one. This pile is the one thing in the garden that *this skill*
+changes, so any number written down about it is stale the moment someone works it. Rebuild
+first, then read `unidentified.md` and say what is in it now.
+
+**Separate the pile into three, because only one of them is work:**
+
+| | |
+|---|---|
+| opaque names — DOIs, hashes, `2604.16106v2.pdf` | **the actual backlog** |
+| untitled but the filename already reads clearly | low priority; the index reads fine |
+| yields no readable text at all — images, video, scanned pages | will never have a title |
+
+Reporting one total across all three is true and misleading. "225 files lack a title" is
+paralysing and is not what the job is; *"9 opaque out of 354"* is finishable.
+
+**An empty backlog is a real result.** If nothing is opaque, the honest report is *"rebuilt;
+nothing left to name"* — and then you stop. Do not pad it by retitling files whose names
+already read clearly: the counter moves and the index does not get better. That is churn
+dressed as maintenance.
+
+For each one that does need a name, in small batches — five or ten, not eighty:
 
 1. **Open the file and read enough to name it.** Title page, abstract, first heading.
 2. **Add an entry to `garden/wiki/_overrides.json`** with a real `title` and, if one fits, a
@@ -54,7 +75,16 @@ just guilt.
 
 ## A good report looks like
 
+The numbers below illustrate the *shape* of a report, from a run that had work to do. Quote
+whatever your own re-measure printed, never these:
+
 > Rebuilt: 47 files across 4 shelves. Unidentified went 19 → 11.
 > Titled 8 papers (all opened and read). Of the remaining 11: 6 are images with no text,
 > 3 are scanned PDFs I cannot extract, and 2 I could open but could not confidently
 > categorise — they are listed below if you want to place them.
+
+And when there is nothing opaque left, the whole report is two sentences:
+
+> Rebuilt: 47 files across 4 shelves. Nothing opaque left to name, so I changed no titles.
+> 6 files yield no readable text and never will; 5 more are untitled but read fine by
+> filename.

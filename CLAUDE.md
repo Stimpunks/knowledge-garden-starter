@@ -48,6 +48,10 @@ python3 wiki/_generate.py --no-concepts
 
 Safe to run any time. Overwrites the index; touches nothing in `raw/`.
 
+If you have a search index too, the three steps are **ordered** — extract text, rebuild the
+index, then `qmd update && qmd embed`. Out of order, every step still succeeds and the index
+describes the wrong thing. See [README Step 4](README.md#step-4--make-it-searchable).
+
 ## If you are an AI working in this garden
 
 - **Read from `raw/`; write understanding into `wiki/`.** Never the other way round.
@@ -66,6 +70,9 @@ Safe to run any time. Overwrites the index; touches nothing in `raw/`.
   you only have the title.
 - **Ask before anything irreversible.** Deleting, overwriting, renaming, force-pushing, or
   rewriting history. Propose it and wait.
+- **When a guard refuses, that is the system working.** Report the refusal and stop. Do not
+  raise a limit, pass a `--force`, or find a way around it on the user's behalf — the
+  refusal is the last moment when the mistake is still cheap to undo.
 
 ### Skills available here
 
@@ -77,7 +84,7 @@ because they encode the rules above:
 | `add-to-garden` | Store one new file in `raw/` untouched, record a real title, rebuild the index |
 | `tend-the-garden` | Build the index; work the Unidentified pile by actually opening files |
 | `ask-my-garden` | Answer only from this garden, citing a file beside every claim |
-| `commit-garden` | Commit and push the text layer with a message that says what changed |
+| `commit-garden` | Commit and push the text layer with a message that says what changed — refuses mass deletions and placeholder messages |
 | `check-readability` | Audit reading level and sentence length against plain-language targets |
 
 Full walk-through for the human: [docs/working-with-claude.md](docs/working-with-claude.md).

@@ -106,5 +106,11 @@ Do these once so you know the guardrails are real rather than decorative:
 - **Read a diff before you accept it.** `git diff` after a session that edited config or
   overrides. A diff is how a human supervises a machine.
 
+One guardrail you may meet without asking for it: **`commit-garden` refuses to commit a
+message like "update", and refuses outright if a commit would delete more than 25 files.**
+Seeing `REFUSED` is not a bug and you have not broken anything — it means the commit stopped
+while a mistake was still one command away from being undone. If Claude responds to a refusal
+by working around it, that is worth pushing back on.
+
 None of this is distrust. It is the same reason you keep the originals untouched: so that
 when you need to know where something came from, you can find out.

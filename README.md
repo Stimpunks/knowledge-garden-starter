@@ -197,7 +197,51 @@ so much" finds writing about monotropism without either of you using that word.
 
 Note that qmd reads **text**. PDFs in `raw/` are invisible to it unless you extract their
 text first — see [docs/searching-pdfs.md](docs/searching-pdfs.md) for the honest version of
-that problem.
+that problem. If you build that cache, it is a third collection:
+
+```bash
+qmd collection add ./.qmd/library --name library
+```
+
+### Three things that will bite you, in the order you will hit them
+
+**1. `qmd embed` can finish successfully with work left to do.** On a large first run it
+stops at an internal batch limit, **exits 0**, and leaves documents unembedded. Nothing
+warns you. Keyword search keeps working, so the failure is invisible: `qmd query` silently
+cannot return hits that exist, and your first real search under-reports.
+
+```bash
+qmd status | grep -i pending    # a "Pending: N" line means embedding is incomplete
+```
+
+**Re-run `qmd embed` until that line is gone.** Exit code is not the completion signal
+here; the pending count is. Until it reaches zero, treat every "I found nothing" as
+"I found nothing *yet*."
+
+**2. Rebuild in order, or you get a confidently wrong index.** The three steps feed each
+other, and none of them errors when run out of order:
+
+```bash
+pdftotext …                              # 1. extract text from new PDFs (Step 4, above)
+python3 wiki/_generate.py --no-concepts  # 2. rebuild the index over what is now readable
+qmd update && qmd embed                  # 3. re-index and embed — last, always
+```
+
+Embed before you extract and the new PDFs are absent. Embed before you regenerate and the
+index qmd searches is the old one. Both look like success.
+
+**3. A search hit is a pointer, not a citation.** Two upstream behaviours to know about,
+both real in qmd 2.5.3:
+
+- **`qmd get` fuzzy-matches on the file's base name** and can hand back a *different* file
+  than the one you asked for. Address hits by the `#docid` shown in the search result, and
+  confirm you opened the file you meant.
+- **`qmd://` URIs are slugified, not filesystem paths** — dots and spaces get rewritten, so
+  you cannot `cat` one. Use `grep`/`ls` when you need the real path. (`--full-path` is
+  ignored on `search` and `query` in this version.)
+
+If you cite the extracted copy instead of the original, you have cited a cache. Cite the
+file in `raw/`.
 
 ---
 
