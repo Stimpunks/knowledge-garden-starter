@@ -40,8 +40,16 @@ If the user has installed [qmd](https://github.com/tobi/qmd), prefer it — it f
 by meaning rather than by matching words the user had to guess:
 
 ```bash
-qmd query "the question in their own words"
+qmd query "the question in their own words"            # everything indexed
+qmd query "the question in their own words" -c library # just the extracted text of raw/
 ```
+
+Run it **from the top of the project**, where the index lives in `.qmd/`. qmd only looks in the
+folder it is run from and the ones above it, so a search from somewhere else can quietly hit a
+different, empty index. A hit from the `library` collection is extracted text: its `source:`
+line names the original in `garden/raw/`, and **that** is what you cite. Files no search can
+read — images, unscanned PDFs — are listed by name in `.qmd/library/_UNSEARCHABLE.md`; check it
+before saying the garden holds nothing.
 
 **But a search index is not the garden.** It reflects the last time it was rebuilt, it only
 covers the folders someone thought to add as collections, and it cannot read PDFs unless

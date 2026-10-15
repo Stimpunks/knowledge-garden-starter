@@ -8,8 +8,8 @@ description: Audit the reading level and sentence length of any text — pasted,
 A **diagnostic, not a gate.** It reports how hard a piece of writing is to read and points at
 the specific sentences to fix. It writes nothing, changes nothing, and blocks nothing.
 
-Ported from the Cavendish Cards `scripts/check-readability.py`, which audited one fixed corpus
-(card Notes). This one takes whatever the user gives it: pasted text, a file, a folder, a glob.
+Adapted from a script Stimpunks Foundation wrote to audit one fixed set of cards. This one
+takes whatever the user gives it: pasted text, a file, a folder, a glob.
 
 `check-readability.py` does the counting. **You do the judgment** — reading the numbers,
 deciding whether they matter for this piece, and offering rewrites.
@@ -44,9 +44,9 @@ Inputs — any mix, and it's safe to point at `raw/` since nothing is ever writt
 |---|---|
 | Pasted text | `pbpaste \| python3 .../check-readability.py` |
 | Text the user gave you in chat | `--text "…"` (or write it to the scratchpad and pass the path) |
-| One file | `notes/Inbox/draft.md` |
-| A folder | `wiki/learnings/` |
-| A glob | `'notes/Pub Flow/**/*.md'` (quote it — let Python expand it) |
+| One file | `garden/notes/Inbox/draft.md` |
+| A folder | `garden/notes/` |
+| A glob | `'garden/notes/**/*.md'` (quote it — let Python expand it) |
 
 Options: `--max-words N` (long-sentence threshold, default 15) · `--top N` (how many to list,
 default 8) · `--sentences` (dump long sentences for the worst files in a multi-file run) ·
@@ -56,7 +56,7 @@ before scoring, the way ASAN pulls defined terms out before checking a score) ·
 `--include-unpunctuated` · `--json`.
 
 If the user pasted the text into chat rather than the clipboard, write it to a scratchpad file and
-pass that path — it avoids shell-quoting mangling his punctuation.
+pass that path — it avoids shell-quoting mangling their punctuation.
 
 ## Reading the output
 
@@ -90,12 +90,13 @@ That matters here: it's the format ASAN asks for and the one the user often writ
 Numbers alone aren't the deliverable. After the run:
 
 1. **Name the top 3–5 sentences to fix**, quoting each with its word count.
-2. **Offer a rewrite** for the worst ones — split at the joints, one idea per sentence. Keep the
-   Editorial Voice: identity-first, **Autistic** and **Disabled** capitalized,
-   plainspoken but not dumbed down. *We don't flatten the idea, we clear the fog away.*
-3. **Say what a score can't tell him** — whether the words are the right words, whether the
+2. **Offer a rewrite** for the worst ones — split at the joints, one idea per sentence. Keep
+   the writer's own voice, and any house style the garden has written down (Stimpunks', for
+   one, uses identity-first language and capitalizes **Autistic** and **Disabled**).
+   Plainspoken, not dumbed down: *don't flatten the idea, clear the fog away.*
+3. **Say what a score can't tell the user** — whether the words are the right words, whether the
    structure supports re-entry, whether it needs an Easy Read version reviewed by the people it's
    for.
 
-Don't rewrite the file unless the user asks. If he does, and it lives in `notes/`, edit in place;
+Don't rewrite the file unless the user asks. If they do, and it lives in `garden/notes/`, edit in place;
 otherwise follow the usual rules for that folder (`raw/` is never edited).

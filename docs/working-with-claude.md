@@ -17,19 +17,23 @@ Two files do the work, and they are both plain text you can read and change:
   the rules — *never edit `raw/`*, *never hand-edit the generated index* — arrive before any
   work does. Rules written down where the work happens beat rules you have to remember to
   repeat.
-- **`.claude/skills/`** — five named tools, each a plain-language instruction file. You invoke
-  one by describing what you want in ordinary words.
+- **`.claude/skills/`** — eight named tools, each a plain-language instruction file. You
+  invoke one by describing what you want in ordinary words.
 
 | Skill | Say something like |
 |---|---|
 | **add-to-garden** | *"add this paper to my garden"* |
+| **process-inbox** | *"process the inbox"* |
 | **tend-the-garden** | *"build my index"* · *"what's in Unidentified?"* |
+| **reindex** | *"rebuild search"* · *"make my PDFs searchable"* |
 | **ask-my-garden** | *"what do I have on monotropism?"* |
 | **commit-garden** | *"commit my notes"* |
+| **pull-garden** | *"pull my garden"* · *"get my changes from the other computer"* |
 | **check-readability** | *"is this readable?"* |
 
 **Narrow on purpose.** A tool that does one thing can be trusted, and when it goes wrong the
-failure is legible. None of them touch your originals.
+failure is legible. None of them change your originals — the ones that store files only ever
+add to `raw/`, and refuse rather than overwrite.
 
 ---
 
@@ -106,9 +110,17 @@ Do these once so you know the guardrails are real rather than decorative:
 - **Read a diff before you accept it.** `git diff` after a session that edited config or
   overrides. A diff is how a human supervises a machine.
 
-One guardrail you may meet without asking for it: **`commit-garden` refuses to commit a
-message like "update", and refuses outright if a commit would delete more than 25 files.**
-Seeing `REFUSED` is not a bug and you have not broken anything — it means the commit stopped
+Guardrails you may meet without asking for them:
+
+- **`commit-garden` refuses a message like "update"**, refuses outright if a commit would
+  delete more than 25 files, and refuses to commit while your other computer has pushed work
+  this one has not pulled. Moving or renaming notes does not count as deleting them.
+- **The index builder refuses to run** when files it has indexed are missing from `raw/` —
+  usually because this is a second computer, or the drive holding `raw/` is unplugged.
+- **`pull-garden` refuses** when the same file was changed on both computers, after putting
+  everything back exactly as it was.
+
+Seeing `REFUSED` is not a bug and you have not broken anything — it means the work stopped
 while a mistake was still one command away from being undone. If Claude responds to a refusal
 by working around it, that is worth pushing back on.
 

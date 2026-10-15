@@ -28,14 +28,31 @@ WHAT IT GUARDS, and why each one is here:
     is a legitimate setup — but you should know which one you have, so this reports it
     every run rather than letting a green checkmark imply more than it means.
 
+  * Committing on a stale base. If the remote has commits this computer lacks — you
+    committed from your other machine — the run stops and says to pull first. Finding that
+    out *after* committing is how you end up mid-rebase on day one.
+
+Deletions are counted AFTER rename detection. Moving a folder of notes in Obsidian shows up
+in `git status` as every file deleted plus every file new; git only recognises it as a move
+once the change is staged. An earlier version of this script counted the unstaged view, so
+tidying 30 notes into a new folder was refused as "would delete 30 files". A guard that
+fires on ordinary tidying teaches you to ignore it, which is worse than no guard. The
+preview still stages nothing: renames are worked out on a throwaway copy of the index.
+
 It only ever moves forward: no amend, no rebase, no force, no history rewriting. There are
 no flags for those on purpose.
 """
 
 import argparse
+import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
+
+# git's well-known id for the empty tree: the base to diff against before the first commit.
+EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 
 # Messages that cost the same to type as a real one and tell you nothing. The subject is
 # also rejected for being too short — "Fix bug" passes this set and still says nothing.
@@ -44,10 +61,11 @@ LAZY = {"update", "updates", "updated", "changes", "change", "changed", "wip", "
         "checkpoint", "snapshot", "notes", "."}
 
 
-def git(*args, root=None, check=False):
+def git(*args, root=None, check=False, env=None):
     """Run a git command and hand back the completed process. Never raises on exit code."""
     return subprocess.run(["git", "-C", root or ".", *args],
-                          capture_output=True, text=True, check=check)
+                          capture_output=True, text=True, check=check,
+                          env={**os.environ, **env} if env else None)
 
 
 def repo_root():
@@ -77,28 +95,70 @@ def check_message(msg):
 def pending(root):
     """Everything that would go into the commit, grouped: {'A': [...], 'M': [...], ...}.
 
-    Read from `git status --porcelain`, NOT from the index, so that previewing costs nothing
-    and mutates nothing. `git add -A` happens once, immediately before the commit — a
-    --dry-run that silently staged the whole tree would destroy any partial staging the user
-    had set up, which is a rude thing for a preview to do.
+    Worked out on a THROWAWAY COPY of the index, so previewing still mutates nothing. `git
+    add -A` on the real index happens once, immediately before the commit — a --dry-run that
+    silently staged the whole tree would destroy any partial staging the user had set up,
+    which is a rude thing for a preview to do.
+
+    Why not just read `git status`? Because it cannot see renames in unstaged changes. A
+    folder moved in Obsidian reads there as N deletions plus N new files, and this script
+    used to refuse it as a mass deletion. Git detects the move (`-M`) only once the change is
+    staged — so it is staged here, in a temporary index that is deleted afterwards. Renames
+    land in 'R' and are never counted as deletions.
     """
-    groups = {}
-    # -uall matters: the default collapses a new directory into one "?? dir/" entry, so a
-    # commit adding 30 notes would report "+1 added". A count that under-reports the size of
-    # the commit is the exact failure this script exists to prevent.
-    for line in git("status", "--porcelain", "-uall", root=root).stdout.splitlines():
-        if not line.strip():
-            continue
-        xy, path = line[:2], line[3:]
-        if xy == "??":
-            code = "A"                          # untracked: `add -A` will add it
+    real = git("rev-parse", "--git-path", "index", root=root).stdout.strip()
+    if real and not os.path.isabs(real):
+        real = os.path.join(root, real)
+    fd, tmp = tempfile.mkstemp(prefix="commit-garden-index-")
+    os.close(fd)
+    try:
+        if real and os.path.exists(real):
+            shutil.copyfile(real, tmp)          # keeps git's stat cache: add -A stays fast
         else:
-            code = (xy[0] if xy[0] != " " else xy[1]).upper()
-        if code == "R" and " -> " in path:
-            path = path.split(" -> ", 1)[1]     # report the destination
-        path = path.strip('"')
-        groups.setdefault(code, []).append(path)
+            os.remove(tmp)                      # no index yet: let git create a fresh one
+        env = {"GIT_INDEX_FILE": tmp}
+        git("add", "-A", root=root, env=env)
+        base = "HEAD" if git("rev-parse", "--verify", "-q", "HEAD",
+                             root=root).returncode == 0 else EMPTY_TREE
+        out = git("diff", "--cached", "-M", "--name-status", "-z", base,
+                  root=root, env=env).stdout
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+
+    groups = {}
+    toks, i = out.split("\0"), 0
+    while i < len(toks):
+        st = toks[i]
+        i += 1
+        if not st:
+            continue
+        code = st[0].upper()
+        if code in ("R", "C"):
+            path = toks[i + 1] if i + 1 < len(toks) else ""   # old path, then new: keep new
+            i += 2
+        else:
+            path = toks[i] if i < len(toks) else ""
+            i += 1
+        if path:
+            groups.setdefault(code, []).append(path)
     return groups
+
+
+def behind_remote(root):
+    """(behind, ahead) against the upstream branch, after a fetch — or None if it cannot say.
+
+    None covers the legitimate cases: no remote at all (the ZIP route), a branch with no
+    upstream yet, or no network. None of those should stop a local commit; the push step
+    diagnoses them afterwards.
+    """
+    if git("rev-parse", "--abbrev-ref", "@{upstream}", root=root).returncode != 0:
+        return None
+    if git("fetch", "--quiet", root=root).returncode != 0:
+        return None
+    b = git("rev-list", "--count", "HEAD..@{upstream}", root=root).stdout.strip()
+    a = git("rev-list", "--count", "@{upstream}..HEAD", root=root).stdout.strip()
+    return (int(b) if b.isdigit() else 0, int(a) if a.isdigit() else 0)
 
 
 def by_area(paths, limit=8):
@@ -140,6 +200,22 @@ def raw_state(root):
                      if p and is_source(p)])
     on_disk = sum(len([f for f in files if is_source(f)]) for _, _, files in os.walk(raw))
 
+    # The index generator records every asset it has seen in a TRACKED manifest. An empty
+    # raw/ next to a manifest that expects files is not "nothing stored yet": it is a second
+    # computer, or a drive that is not plugged in. Saying "nothing to protect" there would
+    # reassure exactly the person about to commit an emptied index.
+    expected = 0
+    try:
+        with open(os.path.join(root, "garden", "wiki", "_raw_manifest.json"),
+                  encoding="utf-8") as fh:
+            expected = len(json.load(fh).get("assets", []))
+    except (OSError, ValueError):
+        pass
+
+    if on_disk == 0 and expected:
+        return (f"garden/raw/: EMPTY on this computer, but the index lists {expected} "
+                f"file(s). Your library lives somewhere else — another computer, or a drive "
+                f"that is not connected. Don't rebuild the index here.")
     if on_disk == 0:
         return "garden/raw/: empty — nothing stored yet, so nothing to protect."
     if n_tracked == 0:
@@ -166,8 +242,9 @@ def diagnose_push(stderr):
                 "of cloning someone else's template without detaching. Fix:\n"
                 "    git remote remove origin && git remote add origin <your-own-url>")
     if "non-fast-forward" in e or "rejected" in e or "fetch first" in e:
-        return ("the remote has commits you do not. Pull first, then push again:\n"
-                "    git pull --rebase && git push\n"
+        return ("the remote has commits you do not. Bring them in, then push again:\n"
+                "    python3 .claude/skills/pull-garden/pull-garden.py && git push\n"
+                "  That backs out cleanly on a conflict instead of leaving you mid-rebase.\n"
                 "  (Do NOT force-push to resolve this.)")
     if "could not read from remote" in e or "host key" in e or "authentication failed" in e:
         return ("could not authenticate to the remote. The commit is saved locally and the "
@@ -183,6 +260,8 @@ def main():
                     help="refuse if the staged set deletes more than this many files (default 25)")
     ap.add_argument("--dry-run", action="store_true", help="show what would happen; commit nothing")
     ap.add_argument("--no-push", action="store_true", help="commit locally, do not push")
+    ap.add_argument("--allow-diverged", action="store_true",
+                    help="commit even though the remote has commits this computer lacks")
     a = ap.parse_args()
 
     root = repo_root()
@@ -205,9 +284,23 @@ def main():
         print("Nothing to commit — the tree is clean. That is a no-op, not a problem.")
         return 0
 
+    # Check BEFORE committing, not after a push fails. Committing on top of a stale base is
+    # how a newcomer ends up mid-rebase, which is the most confusing state git has.
+    gap = None if a.allow_diverged else behind_remote(root)
+    if gap and gap[0] > 0:
+        behind, ahead = gap
+        print(f"REFUSED: the remote has {behind} commit(s) this computer does not "
+              f"({ahead} here that it does not).", file=sys.stderr)
+        print("  Usually that means you committed from your other computer. Bring that work\n"
+              "  in first, then commit — say \"pull my garden\", or run:\n"
+              "      python3 .claude/skills/pull-garden/pull-garden.py\n"
+              "  Nothing has been committed. If you really mean to commit on top of a stale\n"
+              "  base, re-run with --allow-diverged.", file=sys.stderr)
+        return 2
+
     groups = pending(root)
-    adds, mods = groups.get("A", []), groups.get("M", [])
-    dels, rens = groups.get("D", []), groups.get("R", [])
+    adds, mods = groups.get("A", []), groups.get("M", []) + groups.get("T", [])
+    dels, rens = groups.get("D", []), groups.get("R", []) + groups.get("C", [])
 
     if len(dels) > a.max_deletes:
         print(f"REFUSED: this commit would delete {len(dels)} files "
@@ -224,9 +317,12 @@ def main():
 
     print(f"Staged: +{len(adds)} added, ~{len(mods)} modified, -{len(dels)} deleted"
           + (f", {len(rens)} renamed" if rens else ""))
-    for label, paths in (("added", adds), ("modified", mods), ("deleted", dels)):
+    for label, paths in (("added", adds), ("modified", mods), ("deleted", dels),
+                         ("renamed", rens)):
         if paths:
             print(f"  {label}: {by_area(paths)}")
+    if rens:
+        print("  (renames and moves are counted as neither loss nor gain)")
 
     if state := raw_state(root):
         print(f"\n{state}")

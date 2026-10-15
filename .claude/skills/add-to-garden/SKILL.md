@@ -25,36 +25,33 @@ describe it honestly. Nothing else.
    file stored with a truthful title is findable forever, and one stored blind joins the
    Unidentified pile.
 
-3. **Copy it in, unchanged.** Keep the original filename unless it collides with something
-   already there:
+3. **Copy it in, unchanged, and record what it is** — one command does both:
 
    ```bash
-   cp -p "/path/to/the/file.pdf" garden/raw/
+   python3 .claude/skills/process-inbox/process-inbox.py ingest "/path/to/the/file.pdf" \
+     --title "Applied Behavior Analysis in Children and Youth with Autism: A Scoping Review" \
+     --category reading
    ```
 
-   Use `cp`, not `mv` — leave the user's copy where they had it. If the name collides,
-   append a short distinguishing suffix rather than overwriting anything, and say you did.
+   It copies — never moves, never links — so the user's own copy stays where they had it.
+   It refuses to overwrite: a name collision gets a ` (2)` suffix, and the result says so.
+   If `raw/` already holds the same bytes it reports `already-present` and stores nothing
+   twice. It checks the stored copy byte for byte, and writes the title into
+   `garden/wiki/_overrides.json` under the exact stored filename.
 
-4. **Record what it is.** Add an entry to `garden/wiki/_overrides.json`, keyed on the exact
-   stored filename:
-
-   ```json
-   "40614_2022_Article_338.pdf": {
-     "title": "Applied Behavior Analysis in Children and Youth with Autism: A Scoping Review",
-     "category": "reading"
-   }
-   ```
-
-   Pick `category` from the ids in `garden/wiki/_config.json`. If none fit, **leave category
-   out** and say so — the file lands in Unidentified, which is an honest to-do rather than a
-   wrong shelf. Do not invent a new category without asking; that is a config change the
-   user owns.
+4. **Choose the category honestly.** `process-inbox.py categories` lists the shelf ids from
+   `garden/wiki/_config.json`. If none fit, **leave `--category` out** and say so — the file
+   lands in Unidentified, which is an honest to-do rather than a wrong shelf. Do not invent
+   a new category without asking; that is a config change the user owns.
 
 5. **Rebuild the index.**
 
    ```bash
-   cd garden && python3 wiki/_generate.py --no-concepts
+   python3 .claude/skills/reindex/reindex.py
    ```
+
+   That also refreshes search, if the user has set it up. Without search,
+   `cd garden && python3 wiki/_generate.py --no-concepts` is enough.
 
 6. **Report plainly.** The stored filename, the title you recorded, which shelf it landed
    on, and anything you could not determine. If you could not read the file — an image, a

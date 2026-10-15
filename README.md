@@ -12,8 +12,9 @@ stops being useful — most of the value is in step one, and each later step onl
 convenience on top of a thing that already worked.
 
 > **Planning to use an AI to help maintain this?** It is already set up for that. `CLAUDE.md`
-> carries the rules and `.claude/skills/` holds five narrow tools — add a file, build the
-> index, ask the garden, commit, check readability. Start with
+> carries the rules and `.claude/skills/` holds eight narrow tools — add a file, empty the
+> inbox, build the index, rebuild search, ask the garden, commit, pull from your other
+> computer, check readability. Start with
 > [docs/working-with-claude.md](docs/working-with-claude.md). The important boundary is there
 > too: **the machine writes the index, never the sources, and never answers for them.**
 
@@ -150,6 +151,27 @@ Our own argument for this is in
 *get your shit in git.* A commit history is a record of iterations, and a diff is how a
 human supervises a machine.
 
+### Two computers?
+
+Clone your own repository onto the second one and it works — with two things to know.
+
+**Bring work in before you add to it.** Commit on your laptop while your desktop has commits
+it has not seen, and git asks you to reconcile them. The usual advice, `git pull --rebase`,
+stops halfway on a conflict and leaves you in the most confusing state git has. Use the
+script instead. It backs out cleanly if two edits collide:
+
+```bash
+python3 .claude/skills/pull-garden/pull-garden.py
+```
+
+`commit-garden` checks for this before committing and tells you to pull first.
+
+**Your library does not come with it.** `garden/raw/` is git-ignored (gigabytes of PDFs do
+not belong in git), so a clone brings the index and none of the files it points at. Copy
+`raw/` across yourself, or keep it somewhere both computers can reach. Until then the index
+builder refuses to run on that computer, by design: rebuilding from an empty `raw/` would
+quietly empty your index, and the commit after it would look like an ordinary edit.
+
 ---
 
 ## Step 3 — Let something else write the index.
@@ -183,54 +205,66 @@ meaning. [qmd](https://github.com/tobi/qmd) is a local search engine for folders
 Markdown: keyword search, meaning-based search, and a reranker, all running on your own
 machine with no vendor and no network.
 
+Run all of this **from the top of your project** — the folder that holds `garden/` and
+`CLAUDE.md`, not from inside `garden/`:
+
 ```bash
 npm install -g @tobilu/qmd
-cd garden
-qmd collection add ./notes --name notes
-qmd collection add ./wiki --name wiki
-qmd embed                      # first run downloads models; takes a while
+qmd init                                      # makes .qmd/ here: this project's own index
+qmd collection add ./garden/notes --name notes
+qmd collection add ./garden/wiki --name wiki
+qmd embed                                     # first run downloads models; takes a while
 qmd query "what did I read about X"
 ```
 
 The payoff is finding things by what they *mean*. "Why does being interrupted mid-task hurt
 so much" finds writing about monotropism without either of you using that word.
 
-Note that qmd reads **text**. PDFs in `raw/` are invisible to it unless you extract their
-text first — see [docs/searching-pdfs.md](docs/searching-pdfs.md) for the honest version of
-that problem. If you build that cache, it is a third collection:
+### Your PDFs, too
+
+qmd reads **text**, and only Markdown by default. PDFs in `raw/` are invisible to it until
+their text is extracted. This does that, writing one Markdown file per original, with the
+original's path in it so you always know what to cite:
 
 ```bash
+python3 garden/wiki/_qmd_library.py           # needs pdftotext: brew install poppler
 qmd collection add ./.qmd/library --name library
 ```
 
-### Three things that will bite you, in the order you will hit them
+Scanned PDFs have no text to extract. `python3 garden/wiki/_qmd_library.py --ocr` reads them
+with OCR (`brew install ocrmypdf`) — slow, minutes per book, but each file is paid for once.
+Whatever still cannot be read is listed by name in `.qmd/library/_UNSEARCHABLE.md`, so a search
+for its title finds that list instead of nothing. [docs/searching-pdfs.md](docs/searching-pdfs.md)
+has the reasoning.
 
-**1. `qmd embed` can finish successfully with work left to do.** On a large first run it
-stops at an internal batch limit, **exits 0**, and leaves documents unembedded. Nothing
-warns you. Keyword search keeps working, so the failure is invisible: `qmd query` silently
-cannot return hits that exist, and your first real search under-reports.
-
-```bash
-qmd status | grep -i pending    # a "Pending: N" line means embedding is incomplete
-```
-
-**Re-run `qmd embed` until that line is gone.** Exit code is not the completion signal
-here; the pending count is. Until it reaches zero, treat every "I found nothing" as
-"I found nothing *yet*."
-
-**2. Rebuild in order, or you get a confidently wrong index.** The three steps feed each
-other, and none of them errors when run out of order:
+After that, **one command keeps everything current**, in the right order:
 
 ```bash
-pdftotext …                              # 1. extract text from new PDFs (Step 4, above)
-python3 wiki/_generate.py --no-concepts  # 2. rebuild the index over what is now readable
-qmd update && qmd embed                  # 3. re-index and embed — last, always
+python3 .claude/skills/reindex/reindex.py
 ```
 
-Embed before you extract and the new PDFs are absent. Embed before you regenerate and the
-index qmd searches is the old one. Both look like success.
+Nothing under `.qmd/` is ever committed. On a second computer, run the commands above again.
 
-**3. A search hit is a pointer, not a citation.** Two upstream behaviours to know about,
+### Four things that will bite you, in the order you will hit them
+
+**1. qmd only looks in the folder you are in, and the folders above it.** Run `qmd init`
+inside `garden/` and the index lives in `garden/.qmd/`. Then any search run from the top of the
+project — which is where Claude works — silently searches a different, empty index and finds
+nothing. That is why every command here runs from the top.
+
+**2. Extract to Markdown, never `.txt`.** An earlier version of this template told you to save
+`pdftotext` output as `.txt` files. qmd's default pattern is `**/*.md`, so it indexed **zero**
+of them — no error, every search over the library empty. If you followed that, delete the
+`.txt` files and run `_qmd_library.py` instead.
+
+**3. `qmd embed` can finish successfully with work left to do.** On a large first run it
+stops at an internal batch limit, **exits 0**, and leaves documents unembedded. Keyword search
+keeps working, so the failure is invisible: `qmd query` silently cannot return hits that
+exist. `qmd status` shows a `Pending: N` line until it is done. `reindex.py` checks that count
+and runs `qmd embed` again while it is still falling. Until it reaches zero, treat every
+"I found nothing" as "I found nothing *yet*."
+
+**4. A search hit is a pointer, not a citation.** Two upstream behaviours to know about,
 both real in qmd 2.5.3:
 
 - **`qmd get` fuzzy-matches on the file's base name** and can hand back a *different* file
@@ -241,7 +275,7 @@ both real in qmd 2.5.3:
   ignored on `search` and `query` in this version.)
 
 If you cite the extracted copy instead of the original, you have cited a cache. Cite the
-file in `raw/`.
+file in `raw/` — every extracted file names it in its `source:` line.
 
 ---
 
@@ -249,7 +283,7 @@ file in `raw/`.
 
 The Stimpunks system has a layer that indexes *ideas* rather than files: one page per
 concept, gathering everything the whole garden holds about it. It works because it keys on a
-**published glossary of 445 terms** that already existed.
+**published glossary of several hundred terms** that already existed.
 
 **This is the one part of the pattern that does not travel on its own.** If you do not have
 a controlled vocabulary, there is nothing for it to key on, and inventing one with a machine

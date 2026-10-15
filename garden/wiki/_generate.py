@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-"""Regenerates wiki/ as an AI-written table of contents referencing files in raw/.
+"""Regenerates wiki/ as a table of contents referencing files in raw/.
 Categorization is keyword-based over filenames. Re-runnable: overwrites wiki/.
 
-Also refreshes the **concept layer** (`wiki/concepts/`) via `_concepts.py` — the
-cross-corpus backlink index keyed on our published glossary. That layer is read-only
-over site/, highlights/ and notes/; it links them, it never modifies or indexes them
-as assets.
+If a `_concepts.py` sits beside this file it also refreshes an optional concept layer
+(`wiki/concepts/`). This template does not ship one — see README Step 5 — and the
+generator says so in one line rather than treating its absence as an error.
 
 Flags:
-  --no-concepts     skip the concept layer (fast; sections + README only)
-  --force-concepts  ignore the concept cache and rescan every corpus
-  --check           concept-layer health report, then exit
+  --no-concepts       skip the concept layer (fast; sections + README only)
+  --force-concepts    ignore the concept cache and rescan every corpus
+  --check             concept-layer health report, then exit
+  --allow-raw-shrink  rebuild even though files recorded in wiki/_raw_manifest.json are
+                      missing from raw/. Rare, and never the answer on a second computer —
+                      see the manifest guard below.
 """
 import os, re, json, glob, sys
 
@@ -19,7 +21,7 @@ RAW = os.path.join(ROOT, "raw")
 WIKI = os.path.join(ROOT, "wiki")
 sys.path.insert(0, WIKI)
 
-# Optional per-file hints written by the add-new-resource skill:
+# Optional per-file hints written by the add-to-garden and process-inbox skills:
 #   { "exact filename.pdf": {"category": "<cat-id>", "title": "Human Title"} }
 # Lets analysis place opaque-named files and give them readable titles — without
 # ever hand-editing the generated .md (regenerate is still the only write path).
@@ -31,9 +33,9 @@ if os.path.exists(_ovr):
     except Exception:
         OVERRIDES = {}
 
-# Index top-level entries in raw/, excluding subfolders (e.g. raw/inputs/, which
-# holds ingested session logs as reference provenance). Use "not isdir" rather than
-# "isfile" so broken symlinks — which isfile rejects — stay indexed.
+# Index top-level entries in raw/, excluding subfolders (raw/ is meant to be flat; a
+# subfolder is someone's deliberate exception, not library material). Use "not isdir"
+# rather than "isfile" so broken symlinks — which isfile rejects — stay indexed.
 # A README in raw/ documents the folder; it is not an asset in it. Skipping it means a
 # starter garden can explain its own rules in place — "write the rules down where the work
 # happens" — without that note showing up as catalogued library material.
@@ -42,9 +44,89 @@ files = sorted([f for f in os.listdir(RAW)
                 if f not in SKIP and not os.path.isdir(os.path.join(RAW, f))],
                key=str.lower)
 
+# ---------------------------------------------------------------------------
+# RAW MANIFEST GUARD.
+#
+# raw/ is git-ignored by default, so it does not travel with the repository — but wiki/
+# does. Clone your garden onto a second computer, or run this while the drive that holds
+# raw/ is unplugged, and raw/ is empty while the index still lists everything. Without a
+# guard, this script would happily rebuild the index from nothing: "0 sections, 0 files",
+# exit 0. That shows up as a handful of deleted section pages, far under commit-garden's
+# 25-file deletion limit, so it commits cleanly, pushes, and every computer loses its index.
+#
+# So every asset this script has ever seen is recorded in a TRACKED manifest, and any of
+# them going missing stops the run by name. raw/ is append-only; a file vanishing from it
+# is never routine. (The upstream Stimpunks system added this on 2026-09-13, when a second
+# contributor's raw/ turned out to be a partial copy.)
+MANIFEST = os.path.join(WIKI, "_raw_manifest.json")
+
+
+def _write_raw_manifest(current):
+    tmp = MANIFEST + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump({"_comment": "Every file wiki/_generate.py has seen in raw/. Tracked on "
+                               "purpose: raw/ is not in git, so this is how a second "
+                               "computer — or an unplugged drive — is caught before it "
+                               "empties the index. Updated automatically as raw/ grows.",
+                   "count": len(current),
+                   "assets": current}, fh, indent=1, ensure_ascii=False)
+        fh.write("\n")
+    os.replace(tmp, MANIFEST)
+
+
+def _check_raw_manifest(current):
+    try:
+        with open(MANIFEST, encoding="utf-8") as fh:
+            known = json.load(fh).get("assets", [])
+    except (OSError, ValueError):
+        known = None
+
+    if known is None:
+        print(f"  · recording {len(current)} file(s) in wiki/_raw_manifest.json as the "
+              "baseline — commit it with the index")
+        _write_raw_manifest(current)
+        return
+
+    here = set(current)
+    missing = sorted(f for f in set(known) if f not in here)
+    if not missing:
+        if len(current) > len(set(known)):
+            print(f"  + raw/ grew: {len(set(known))} -> {len(current)} file(s)")
+        _write_raw_manifest(current)
+        return
+
+    if "--allow-raw-shrink" in sys.argv:
+        print(f"  ! {len(missing)} file(s) missing from raw/ — rebuilding without them "
+              "because --allow-raw-shrink was passed")
+        _write_raw_manifest(current)
+        return
+
+    print()
+    print(f"REFUSED: {len(missing)} file(s) the index knows about are not in raw/.")
+    print(f"         raw/ holds {len(current)}; the manifest expects {len(set(known))}.")
+    print("         Rebuilding now would silently drop them from the index — and that")
+    print("         looks like an ordinary edit, so commit-garden would not catch it.")
+    print()
+    for f in missing[:15]:
+        print(f"           - {f}")
+    if len(missing) > 15:
+        print(f"           … and {len(missing) - 15} more")
+    print()
+    print("         Most likely: this is a second computer, or raw/ lives on a drive that")
+    print("         is not connected. raw/ is not in git, so a clone does not bring it.")
+    print("         Don't rebuild here — rebuild on the computer that holds the library.")
+    print()
+    print("         If you really did remove these files on purpose (rare — raw/ is")
+    print("         append-only), rebuild anyway with:")
+    print("           python3 wiki/_generate.py --allow-raw-shrink")
+    raise SystemExit(1)
+
+
+if "--check" not in sys.argv:          # --check writes nothing, the manifest included
+    _check_raw_manifest(files)
+
 # Ordered categories: (id, title, emoji, [keywords]). First match wins.
-# Ordered categories: (id, title, emoji, [keywords]). First match wins.
-# Loaded from wiki/_categories.json so the shelves are DATA, not code — that file is the one
+# Loaded from wiki/_config.json so the shelves are DATA, not code — that file is the one
 # thing you rewrite to point this generator at a different library. Missing or unreadable file
 # means no keyword categories at all, which is honest: everything lands in Unidentified and the
 # index still builds, rather than silently falling back to somebody else's taxonomy.
@@ -82,7 +164,11 @@ def _load_cats():
 CATS = _load_cats()
 
 if "--check" in sys.argv:
-    import _concepts
+    try:
+        import _concepts
+    except ModuleNotFoundError:
+        print("  · no concept layer installed (wiki/_concepts.py absent) — nothing to check")
+        raise SystemExit(0)
     _concepts.check(OVERRIDES)
     raise SystemExit(0)
 
@@ -98,9 +184,6 @@ def cat_for(name):
     # keyword-match against the filename AND any override title, so a title-only
     # override (e.g. from mdls metadata) still routes an opaque-named file correctly.
     low = (name + " " + (ov.get("title", "") if ov else "")).lower()
-    # infographic naming pattern: "X vs. Y" images
-    if ext in {"png","jpg","jpeg"} and " vs" in low:
-        return "neurodivergent-insights"
     for cid, title, emoji, kws in CATS:
         for kw in kws:
             if kw in low:
@@ -211,15 +294,13 @@ with open(os.path.join(WIKI, "README.md"), "w") as fh:
             f"[{r['slug'].replace('-',' ')}](concepts/{r['slug']}.md)"
             for r in top) + "\n\n")
 
-    # Authored guides (workflow learnings) live in wiki/learnings/ and are NOT
-    # generated from filenames — they're distilled by Claude and preserved across
-    # regenerations. Surface them here if present.
+    # Optional: authored guides in wiki/learnings/ are NOT generated from filenames and
+    # survive every regeneration. Surface them here if anyone has written some.
     guides_dir = os.path.join(WIKI, "learnings")
     guides = sorted(glob.glob(os.path.join(guides_dir, "*.md"))) if os.path.isdir(guides_dir) else []
     if guides:
         fh.write("## 🧭 Guides & Workflow Learnings\n\n")
-        fh.write("_Distilled from past Claude Code sessions (source logs in "
-                 "[`../raw/inputs/`](../raw/inputs)). Authored, not auto-generated._\n\n")
+        fh.write("_Authored, not auto-generated — kept across every rebuild._\n\n")
         for g in guides:
             first = ""
             for ln in open(g):

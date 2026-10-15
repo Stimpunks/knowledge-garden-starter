@@ -17,15 +17,13 @@ Two caveats, both from that guide:
   - Reading-level formulas are only one lens and disagree with each other, which
     is why three are reported here. Sentence length (words per sentence) is the
     clearer, more actionable signal. ASAN aims for ~10-15 words per sentence,
-    one idea per sentence. The Stimpunks Editorial Voice says the same thing:
-    "One idea at a time. One main idea per sentence, often one idea per line."
+    one idea per sentence.
   - No script can certify Easy Read. That needs a focus group of people with
     intellectual and developmental disabilities: "nothing about us, without us."
 
-Markdown chrome is stripped before scoring, on the same reasoning Cavendish used
-for lineage credits and glossary links: proper nouns and defined terms inflate the
-grade without being the thing to fix, and ASAN pulls such terms out before checking
-a score. Dropped: frontmatter, code, HTML, images, URLs, tables, footnotes, and
+Markdown chrome is stripped before scoring, because proper nouns and defined terms
+inflate the grade without being the thing to fix, and ASAN pulls such terms out
+before checking a score. Dropped: frontmatter, code, HTML, images, URLs, tables, footnotes, and
 headings (fragments, not sentences — scoring them glues them onto the next
 paragraph). Link and wikilink text is kept, its target dropped. Blockquotes are
 skipped by default: they are usually someone else's words, not prose you can fix.
@@ -38,9 +36,9 @@ No third-party dependencies.
 Usage, from the project root:
     pbpaste | python3 .claude/skills/check-readability/check-readability.py
     python3 .claude/skills/check-readability/check-readability.py --text "Some prose."
-    python3 .claude/skills/check-readability/check-readability.py notes/Inbox/draft.md
-    python3 .claude/skills/check-readability/check-readability.py wiki/learnings/
-    python3 .claude/skills/check-readability/check-readability.py 'notes/**/*.md' --top 12
+    python3 .claude/skills/check-readability/check-readability.py garden/notes/Inbox/draft.md
+    python3 .claude/skills/check-readability/check-readability.py garden/notes/
+    python3 .claude/skills/check-readability/check-readability.py 'garden/notes/**/*.md' --top 12
     python3 .claude/skills/check-readability/check-readability.py draft.md --sentences
     python3 .claude/skills/check-readability/check-readability.py draft.md --json
 """
@@ -76,10 +74,10 @@ MIN_WORDS = 100
 
 # Deciding whether a line break ends a thought or just wraps one.
 #
-# Hard-wrapped prose (CLAUDE.md, wiki/learnings/) fills every line to a wrap
+# Hard-wrapped prose (this template's CLAUDE.md, say) fills every line to a wrap
 # column and breaks mid-sentence, so its lines must be rejoined. One-idea-per-
-# line writing — which is exactly what ASAN asks for, and how Ryan often writes
-# — breaks at each idea, with no terminal period, so rejoining it would read a
+# line writing — which is exactly what ASAN asks for, and how many people write
+# notes — breaks at each idea, with no terminal period, so rejoining it would read a
 # whole section as one enormous sentence and score the best-formed text worst.
 # Telling them apart: in wrapped text a continuing line is *full*, within a few
 # characters of the longest line in the file. A line well short of that is a

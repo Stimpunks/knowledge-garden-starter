@@ -8,9 +8,14 @@
 /garden/inbox/*
 !/garden/inbox/README.md
 
-# Search index, if you get as far as installing qmd. A rebuildable cache, never provenance.
-/garden/.qmd/*
-!/garden/.qmd/index.yml
+# Search index, if you get as far as installing qmd (README Step 4). A rebuildable cache,
+# never provenance — ALL of it, config included. qmd writes absolute paths into
+# .qmd/index.yml, so a tracked copy points at this computer's home folder: on any other
+# computer qmd indexes nothing and says nothing, and on a public repo it publishes your
+# username. The extracted library text stays out too — on a public repo it would publish
+# the full text of every paper you hold. Re-run the four Step 4 commands on each computer.
+/.qmd/
+/garden/.qmd/
 
 .DS_Store
 **/.DS_Store

@@ -14,6 +14,7 @@ garden/raw/      Original, unaltered sources — the library. Never edited.
 garden/wiki/     An index over raw/ — regenerated, never hand-edited.
 garden/notes/    Live working notes. A workspace, not an archive.
 garden/inbox/    Staging tray for undecided things. Usually empty.
+.qmd/            Search index, if set up (README Step 4). A cache — never committed.
 ```
 
 ## Rules — do not break these
@@ -24,6 +25,18 @@ garden/inbox/    Staging tray for undecided things. Usually empty.
 - Keep it **flat**. No subfolders. All the sorting happens in `wiki/`, where changing your
   mind is a config edit instead of a broken link.
 - This is the load-bearing rule. It is what makes the folder provenance rather than storage.
+- **Copy out of `raw/`; never hard-link.** A hard link is the same file under a second name, so
+  anything that writes to the link writes into `raw/`. Anything that places originals
+  elsewhere — a site build, an export — copies them (on a Mac, `cp -c` clones instantly, and a
+  write to the clone cannot reach the original).
+
+### `raw/` does not travel with git
+- `raw/` is git-ignored by default; `wiki/` is not. So a second computer gets the index and
+  none of the files it points at. `wiki/_raw_manifest.json` records every file the index has
+  seen, and the generator **refuses to rebuild** while any of them is missing — otherwise it
+  would empty the index without an error, and commit-garden would not notice.
+- If that refusal fires, the answer is to copy the files over, or rebuild on the computer that
+  holds them — **not** `--allow-raw-shrink`.
 
 ### `wiki/` is generated, never hand-edited
 - To change the index, change `wiki/_config.json` and re-run the generator.
@@ -42,15 +55,13 @@ garden/inbox/    Staging tray for undecided things. Usually empty.
 ## Rebuild
 
 ```bash
-cd garden
-python3 wiki/_generate.py --no-concepts
+python3 .claude/skills/reindex/reindex.py
 ```
 
-Safe to run any time. Overwrites the index; touches nothing in `raw/`.
-
-If you have a search index too, the three steps are **ordered** — extract text, rebuild the
-index, then `qmd update && qmd embed`. Out of order, every step still succeeds and the index
-describes the wrong thing. See [README Step 4](README.md#step-4--make-it-searchable).
+Safe to run any time. Rebuilds the index, then the extracted text of `raw/`, then search —
+in that order, because out of order every step still succeeds and the index describes the
+wrong thing. Touches nothing in `raw/`. Without search set up it does the first two and says
+so. The index alone is `cd garden && python3 wiki/_generate.py --no-concepts`.
 
 ## If you are an AI working in this garden
 
@@ -73,18 +84,31 @@ describes the wrong thing. See [README Step 4](README.md#step-4--make-it-searcha
 - **When a guard refuses, that is the system working.** Report the refusal and stop. Do not
   raise a limit, pass a `--force`, or find a way around it on the user's behalf — the
   refusal is the last moment when the mistake is still cheap to undo.
+- **Disagree when the user is wrong, and say why.** Name the weak premise, the missing
+  evidence, the plan whose failure is obvious. Do not call an idea good unless you have
+  actually checked it — reflexive agreement is the same failure as filling a gap from
+  training data: fluent, confident, and backed by nothing. If they push back with a *reason*,
+  change your mind; if they only repeat themselves, hold the line politely. Once they have
+  heard the objection and still decide, it is their garden — do it their way.
+- **Search from the top of the project.** qmd only finds the index in the folder it is run
+  from or above it, and the index lives in `.qmd/` at the top. And a search that finds
+  nothing is not evidence of absence: check `.qmd/library/_UNSEARCHABLE.md`, which lists the
+  files no search can read.
 
 ### Skills available here
 
-Five narrow tools in `.claude/skills/`. Prefer them over improvising the same work by hand,
+Eight narrow tools in `.claude/skills/`. Prefer them over improvising the same work by hand,
 because they encode the rules above:
 
 | Skill | Does |
 |---|---|
 | `add-to-garden` | Store one new file in `raw/` untouched, record a real title, rebuild the index |
+| `process-inbox` | The same for everything in `inbox/` — then clear the tray, only after each copy is verified |
 | `tend-the-garden` | Build the index; work the Unidentified pile by actually opening files |
+| `reindex` | Rebuild the index, the extracted text, and search, in the one order that works |
 | `ask-my-garden` | Answer only from this garden, citing a file beside every claim |
-| `commit-garden` | Commit and push the text layer with a message that says what changed — refuses mass deletions and placeholder messages |
+| `commit-garden` | Commit and push with a message that says what changed — refuses mass deletions (renames don't count), placeholder messages, and committing while behind the remote |
+| `pull-garden` | Bring in work from your other computer — backs out cleanly on a conflict instead of leaving a half-finished rebase |
 | `check-readability` | Audit reading level and sentence length against plain-language targets |
 
 Full walk-through for the human: [docs/working-with-claude.md](docs/working-with-claude.md).
@@ -98,3 +122,5 @@ Worth keeping a list like this and adding to it as you find things:
 - Files whose names say nothing stay opaque until someone opens them and records a real
   title.
 - A search index reflects the last time it was rebuilt, not what is on disk.
+- Images, scanned PDFs nobody has OCR'd, and cloud-document pointers have no text, so search
+  cannot see inside them. They are listed by name in `.qmd/library/_UNSEARCHABLE.md`.
